@@ -1,0 +1,44 @@
+version: "3.8"
+
+services:
+  cluster_demo:
+    build: .
+    image: registry.digitalocean.com/container-depot/cluster_demo:0.1.0
+    networks:
+      - cluster_demo_network
+    deploy:
+      replicas: 2
+      update_config:
+        parallelism: 1
+        delay: 10s
+        failure_action: rollback
+        order: start-first
+      restart_policy:
+        condition: always
+  # Optional for Caddy reverse proxy with SSL termination, can be removed if not needed
+  caddy:
+    image: caddy:2.7.6
+    networks:
+      - cluster_demo_network
+    deploy:
+      replicas: 1
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+      - "443:443/udp":
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile
+      - caddy_data:/data
+      - caddy_config:/config
+
+networks:
+ cluster_demo_network:
+   driver: overlay
+   ipam:
+     config:
+       - subnet: 172.28.0.0/24
+# Optional for Caddy reverse proxy with SSL termination, can be removed if not needed
+volumes:
+  caddy_data:
+  caddy_config:
